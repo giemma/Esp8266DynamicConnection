@@ -62,13 +62,12 @@ bool Portal::connectToLocal()
 {
   triedConnectedToLocal=true;
   //try to connect to saved wifi
-  unsigned  timeout=millis();
   WiFi.begin(ssid, password);
   unsigned tryes=0;
   while (WiFi.status() != WL_CONNECTED )
   {
     //if(millis()>timeout+2000)
-    if(tryes >10)
+    if(tryes > 15)
     {
       //se dopo 10 secondi non si è ancora connesso allora ritorno false
       Serial.println(" connection timeout");
@@ -87,12 +86,12 @@ void Portal::showConfigurePage ()
 	Serial.println("/configure");
 	loadCredentials();
 
-  if(triedConnectedToLocal==false)
-  {
-    Serial.println("Provo aconnettermi");
+  //if(triedConnectedToLocal==false)
+  //{
+  //  Serial.println("Provo aconnettermi");
     connectedToLocal = connectToLocal();
-    Serial.println(connectedToLocal);
-  }
+  //  Serial.println(connectedToLocal);
+  //}
   
   
 	int numberOfNetworks = WiFi.scanNetworks();
@@ -117,35 +116,36 @@ void Portal::showConfigurePage ()
 
      String networks[numberOfNetworks];
      for(int i =0; i<numberOfNetworks; i++){
+        bool networkFound=false;   
+        String network = WiFi.SSID(i);
 
-      bool networkFound=false;
-      for(int j=0;j<i;j++){
-        if(networks[j]==networks[i]){
-          networkFound=true;
+        //remove duplicates
+        for(int j=0;j<=i;j++){
+          if(networks[j]==network){
+            networkFound=true;
+          }
         }
-      }
 
-      if(networkFound==false){
-        networks[i]=WiFi.SSID(i);
-      }else{
-        networks[i]="";
-      }
-      
+        if(networkFound==false){
+            networks[i]=network;
+        }else{
+            networks[i]="";
+        }
      }
      
      for(int i =0; i<numberOfNetworks; i++){
-        if(networks[i]=="")
+        if(networks[i] == "")
         {
           continue;
         }
-        html+="<option value='";
-        html+=WiFi.SSID(i);              
-        html+="'";
-        if(WiFi.SSID(i)== ssid){
+        html+= "<option value='";
+        html+= networks[i];              
+        html+= "'";
+        if(networks[i]== ssid){
             html += " selected ";
           }        
-        html+=" >";
-        html+=WiFi.SSID(i);
+        html+= " >";
+        html+= networks[i];
         
         //html += " (";
         //html += WiFi.RSSI(i);
