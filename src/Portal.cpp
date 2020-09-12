@@ -13,6 +13,29 @@ Portal::Portal(){
 
 }
 
+bool Portal::connectToLocal()
+{
+  triedConnectedToLocal=true;
+  //try to connect to saved wifi
+  WiFi.begin(ssid, password);
+  unsigned tryes=0;
+  while (WiFi.status() != WL_CONNECTED )
+  {
+    //if(millis()>timeout+2000)
+    if(tryes > 10)
+    {
+      //se dopo 10 secondi non si è ancora connesso allora ritorno false
+      Serial.println(" connection timeout");
+      break;
+    }
+    tryes++;
+    delay(600);
+    Serial.print(".");
+  }
+  Serial.print(" .");
+  return WiFi.status() == WL_CONNECTED;
+}
+
 void Portal::initialize ()
 {	
 	Serial.println();
@@ -40,6 +63,23 @@ void Portal::initialize ()
 	server->begin();  
 	delay(2000);
 	Serial.println("Portal initialized!");
+  
+  if(credentialsFound==true){
+    Serial.println("Connecting to saved network...");
+    connectedToLocal = connectToLocal();
+    if(connectedToLocal==true){
+      Serial.println(" connected");
+
+      for(int i=0;i<100;i++){
+        delay(100);
+        sendBroadcastPacket();   
+      }
+      
+
+    }else{
+      Serial.println(" NOT connected. Please configure the network");
+    }
+  }
 }
 
 void Portal::handleClient ()
@@ -58,40 +98,17 @@ void Portal::showIndexPage ()
 	server->send(200, "text/html", page);
 }
 
-bool Portal::connectToLocal()
-{
-  triedConnectedToLocal=true;
-  //try to connect to saved wifi
-  WiFi.begin(ssid, password);
-  unsigned tryes=0;
-  while (WiFi.status() != WL_CONNECTED )
-  {
-    //if(millis()>timeout+2000)
-    if(tryes > 15)
-    {
-      //se dopo 10 secondi non si è ancora connesso allora ritorno false
-      Serial.println(" connection timeout");
-      break;
-    }
-    tryes++;
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.print(" .");
-  return WiFi.status() == WL_CONNECTED;
-}
-
 void Portal::showConfigurePage ()
 {
 	Serial.println("/configure");
 	loadCredentials();
 
-  //if(triedConnectedToLocal==false)
-  //{
+  if(triedConnectedToLocal==false)
+  {
   //  Serial.println("Provo aconnettermi");
     connectedToLocal = connectToLocal();
   //  Serial.println(connectedToLocal);
-  //}
+  }
   
   
 	int numberOfNetworks = WiFi.scanNetworks();
@@ -211,6 +228,21 @@ void Portal::showInfoPage ()
 	server->send(200, "text/html", html);
 }
 
+void Portal::sendBroadcastPacket(){
+  if(connectedToLocal==false){
+    Serial.println("I can't send packets because I'm not connected :(");
+    return;
+  }
+
+  Serial.println("Sending packet...");
+  UDP.begin(localUdpPort);
+  UDP.beginPacket("255.255.255.255", localUdpPort);
+  UDP.write("Hello");
+  UDP.endPacket();
+  delay(10);
+  Serial.print(" sent!");
+}
+
 void Portal::showServerInfoPage ()
 {
   Serial.println("/ServerInfo");
@@ -219,13 +251,11 @@ void Portal::showServerInfoPage ()
   info+= localUdpPort ;
   info += " port...";
   
+  sendBroadcastPacket();
+
   Serial.print(info);
 
-  UDP.begin(localUdpPort);
-  UDP.beginPacket("255.255.255.255", localUdpPort);
-  UDP.write("Hello");
-  UDP.endPacket();
-  delay(10);
+  
   
   Serial.println("sent!");
     

@@ -23,7 +23,7 @@ class Portal{
 		void showConfigurePage();
 		void showSavePage();
 		void showInfoPage();
-    void showServerInfoPage();
+    	void showServerInfoPage();
 		void showNotFoundPage();
 
     //credentials
@@ -32,6 +32,8 @@ class Portal{
 
     //connections
     bool connectToLocal();
+	void sendBroadcastPacket();
+
 	public:
 		Portal();
 		void initialize();
